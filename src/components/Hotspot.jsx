@@ -1,9 +1,22 @@
 import { useState } from 'react'
+import { useMutation } from 'convex/react'
+import { api } from '../../convex/_generated/api'
 import { percentToPixel } from '../lib/coords.js'
+
+// 고유 클릭 id (제휴 리포트 대사용 subId)
+function makeClickId() {
+  try {
+    if (crypto?.randomUUID) return crypto.randomUUID()
+  } catch {
+    /* noop */
+  }
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 10)
+}
 
 // 시청 모드 핫스팟: 제품 1개면 바로 이동, 여러 개면 썸네일 목록 팝업에서 선택.
 export function Hotspot({ hotspot, videoEl }) {
   const [open, setOpen] = useState(false)
+  const logClick = useMutation(api.clicks.logClick)
   if (!videoEl) return null
 
   const { left, top } = percentToPixel(hotspot.x, hotspot.y, videoEl)
@@ -15,10 +28,24 @@ export function Hotspot({ hotspot, videoEl }) {
   // 하단 핫스팟이면 팝업을 위로 띄워 영상 밖으로 잘리지 않게
   const flipUp = top > (videoEl.clientHeight || 0) * 0.5
 
-  const go = (url) => {
-    if (!url) return
+  const go = (product) => {
+    if (!product?.url) return
     if (hotspot.pauseOnClick) videoEl.pause()
-    window.open(url, '_blank', 'noopener,noreferrer')
+    const clickId = makeClickId()
+    // 클릭 기록 (익명 가능) — 실패해도 이동은 진행
+    logClick({
+      videoKey: hotspot.videoKey,
+      hotspotId: hotspot._id,
+      pid: product.pid,
+      productName: product.name || '',
+      productUrl: product.url,
+      mallMemberId: product.mallMemberId ?? null,
+      memberName: product.memberName || '',
+      clickId,
+    })?.catch?.(() => {})
+    // 제휴 대사용 subId 부착 후 이동
+    const sep = product.url.includes('?') ? '&' : '?'
+    window.open(product.url + sep + 'subId=' + encodeURIComponent(clickId), '_blank', 'noopener,noreferrer')
   }
 
   const onClick = (e) => {
@@ -26,7 +53,7 @@ export function Hotspot({ hotspot, videoEl }) {
     e.preventDefault()
     if (products.length === 0) return
     if (products.length === 1) {
-      go(products[0].url)
+      go(products[0])
     } else {
       if (hotspot.pauseOnClick) videoEl.pause()
       setOpen((o) => !o)
@@ -67,7 +94,7 @@ export function Hotspot({ hotspot, videoEl }) {
             <button className="mini" onClick={() => setOpen(false)}>✕</button>
           </div>
           {products.map((p) => (
-            <button key={p.pid} className="chooser-row" onClick={() => go(p.url)}>
+            <button key={p.pid} className="chooser-row" onClick={() => go(p)}>
               {p.image ? <img src={p.image} alt="" /> : <span className="chooser-noimg" />}
               <span className="chooser-info">
                 <span className="chooser-name">{p.name || '(제품)'}</span>

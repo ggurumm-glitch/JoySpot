@@ -1,3 +1,5 @@
+import { useQuery, useMutation } from 'convex/react'
+import { api } from '../../convex/_generated/api'
 import { useStore, newProduct } from '../store/useStore.js'
 
 // 카탈로그 항목 → 새 pid를 가진 제품 객체
@@ -15,12 +17,12 @@ function catalogToProduct(c) {
   }
 }
 
-// 전역 제품 라이브러리 드로어 (우측 슬라이드). 선택된 핫스팟에 재사용 제품을 추가.
+// 전역 제품 라이브러리 드로어 (Convex catalog).
 export function LibraryDrawer({ open, onClose }) {
-  const catalog = useStore((s) => s.catalog)
+  const catalog = useQuery(api.catalog.list) ?? []
   const selectedHotspotId = useStore((s) => s.selectedHotspotId)
-  const addProduct = useStore((s) => s.addProduct)
-  const removeFromCatalog = useStore((s) => s.removeFromCatalog)
+  const addProduct = useMutation(api.hotspots.addProduct)
+  const removeFromCatalog = useMutation(api.catalog.remove)
 
   return (
     <>
@@ -44,7 +46,7 @@ export function LibraryDrawer({ open, onClose }) {
             </p>
           )}
           {catalog.map((c) => (
-            <div key={c.cid} className="cat-row">
+            <div key={c._id} className="cat-row">
               {c.image ? (
                 <img className="cat-thumb" src={c.image} alt="" />
               ) : (
@@ -57,12 +59,12 @@ export function LibraryDrawer({ open, onClose }) {
               <button
                 className="mini"
                 disabled={!selectedHotspotId}
-                onClick={() => addProduct(selectedHotspotId, catalogToProduct(c))}
+                onClick={() => addProduct({ id: selectedHotspotId, product: catalogToProduct(c) })}
                 title={selectedHotspotId ? '선택된 핫스팟에 추가' : '핫스팟을 먼저 선택하세요'}
               >
                 추가
               </button>
-              <button className="mini danger" onClick={() => removeFromCatalog(c.cid)} title="라이브러리에서 삭제">
+              <button className="mini danger" onClick={() => removeFromCatalog({ id: c._id })} title="라이브러리에서 삭제">
                 ✕
               </button>
             </div>

@@ -1,15 +1,23 @@
 import { useState } from 'react'
-import { useStore } from '../store/useStore.js'
+import { useMutation, useQuery } from 'convex/react'
+import { api } from '../../convex/_generated/api'
+import { Field } from './Field.jsx'
 
-// 핫스팟 안의 개별 제품 편집 카드 (링크·이미지·설명·가격·수수료·회원명 + enrich + 라이브러리 저장)
-export function ProductCard({ hotspotId, product }) {
-  const updateProduct = useStore((s) => s.updateProduct)
-  const removeProduct = useStore((s) => s.removeProduct)
-  const saveToCatalog = useStore((s) => s.saveToCatalog)
-  const [busy, setBusy] = useState(null) // 'link' | 'serper'
+// 핫스팟 안의 개별 제품 편집 카드 (Convex). enrich + 라이브러리 저장.
+export function ProductCard({ hotspotId, product, clicks = 0 }) {
+  const updateProduct = useMutation(api.hotspots.updateProduct)
+  const removeProduct = useMutation(api.hotspots.removeProduct)
+  const addCatalog = useMutation(api.catalog.add)
+  const malls = useQuery(api.members.listMalls) ?? []
+  const [busy, setBusy] = useState(null)
   const [serper, setSerper] = useState(null)
 
-  const patch = (p) => updateProduct(hotspotId, product.pid, p)
+  const patch = (p) => updateProduct({ id: hotspotId, pid: product.pid, patch: p })
+
+  const saveToCatalog = () => {
+    const { pid, ...item } = product
+    addCatalog({ item })
+  }
 
   const enrichFromLink = async () => {
     if (!product.url) return alert('먼저 제품 링크 URL을 입력하세요.')
@@ -64,128 +72,132 @@ export function ProductCard({ hotspotId, product }) {
     <div className="pcard">
       <div className="pcard-head">
         <span className="pcard-title">{product.name || '제품 정보'}</span>
+        <span className="pcard-clicks" title="이 제품 클릭 수">클릭 {clicks}</span>
         <div className="pcard-head-actions">
-          <button className="mini" onClick={() => saveToCatalog(product)} title="라이브러리에 저장">
+          <button className="mini" onClick={saveToCatalog} title="라이브러리에 저장">
             ⭐ 저장
           </button>
-          <button className="mini danger" onClick={() => removeProduct(hotspotId, product.pid)}>
+          <button className="mini danger" onClick={() => removeProduct({ id: hotspotId, pid: product.pid })}>
             삭제
           </button>
         </div>
       </div>
 
       <div className="pcard-body">
-          <label className="fld">
-            <span>제품명</span>
-            <input value={product.name} onChange={(e) => patch({ name: e.target.value })} />
-          </label>
+        <label className="fld">
+          <span>제품명</span>
+          <Field value={product.name} onCommit={(v) => patch({ name: v })} />
+        </label>
 
-          <label className="fld">
-            <span>제품 링크 URL</span>
-            <input
-              type="url"
-              placeholder="https://..."
-              value={product.url}
-              onChange={(e) => patch({ url: e.target.value })}
-            />
-          </label>
+        <label className="fld">
+          <span>제품 링크 URL</span>
+          <Field type="url" placeholder="https://..." value={product.url} onCommit={(v) => patch({ url: v })} />
+        </label>
 
-          <div className="enrich-bar">
-            <button className="btn" onClick={enrichFromLink} disabled={busy === 'link'}>
-              {busy === 'link' ? '가져오는 중…' : '🔗 링크에서 가져오기'}
-            </button>
-            <button className="btn" onClick={searchSerper} disabled={busy === 'serper'}>
-              {busy === 'serper' ? '검색 중…' : '🔎 Serper로 검색'}
+        <div className="enrich-bar">
+          <button className="btn" onClick={enrichFromLink} disabled={busy === 'link'}>
+            {busy === 'link' ? '가져오는 중…' : '🔗 링크에서 가져오기'}
+          </button>
+          <button className="btn" onClick={searchSerper} disabled={busy === 'serper'}>
+            {busy === 'serper' ? '검색 중…' : '🔎 Serper로 검색'}
+          </button>
+        </div>
+
+        {product.image && (
+          <div className="hs-thumb-wrap">
+            <img className="hs-thumb" src={product.image} alt="" />
+            <button className="mini" onClick={() => patch({ image: '' })}>
+              이미지 제거
             </button>
           </div>
+        )}
 
-          {product.image && (
-            <div className="hs-thumb-wrap">
-              <img className="hs-thumb" src={product.image} alt="" />
-              <button className="mini" onClick={() => patch({ image: '' })}>
-                이미지 제거
+        {serper && (
+          <div className="serper">
+            <div className="serper-head">
+              <span>Serper 검색결과</span>
+              <button className="mini" onClick={() => setSerper(null)}>
+                닫기
               </button>
             </div>
-          )}
-
-          {serper && (
-            <div className="serper">
-              <div className="serper-head">
-                <span>Serper 검색결과</span>
-                <button className="mini" onClick={() => setSerper(null)}>
-                  닫기
-                </button>
+            {serper.images?.length > 0 && (
+              <div className="serper-imgs">
+                {serper.images.map((src) => (
+                  <img key={src} src={src} alt="" onClick={() => patch({ image: src })} title="이 이미지 사용" />
+                ))}
               </div>
-              {serper.images?.length > 0 && (
-                <div className="serper-imgs">
-                  {serper.images.map((src) => (
-                    <img key={src} src={src} alt="" onClick={() => patch({ image: src })} title="이 이미지 사용" />
-                  ))}
-                </div>
-              )}
-              {serper.results?.map((rslt) => (
-                <button key={rslt.link} className="serper-row" onClick={() => applyResult(rslt)}>
-                  <span className="serper-title">{rslt.title}</span>
-                  <span className="serper-snip">{rslt.snippet}</span>
-                  <span className="serper-link">{rslt.link}</span>
-                </button>
-              ))}
-            </div>
-          )}
+            )}
+            {serper.results?.map((rslt) => (
+              <button key={rslt.link} className="serper-row" onClick={() => applyResult(rslt)}>
+                <span className="serper-title">{rslt.title}</span>
+                <span className="serper-snip">{rslt.snippet}</span>
+                <span className="serper-link">{rslt.link}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
+        <label className="fld">
+          <span>자세한 설명</span>
+          <Field textarea rows={2} value={product.description} onCommit={(v) => patch({ description: v })} />
+        </label>
+
+        <div className="fld-row">
           <label className="fld">
-            <span>자세한 설명</span>
-            <textarea
-              rows={2}
-              value={product.description}
-              onChange={(e) => patch({ description: e.target.value })}
-            />
+            <span>가격(선택)</span>
+            <Field placeholder="예: 39,900원" value={product.price} onCommit={(v) => patch({ price: v })} />
           </label>
-
-          <div className="fld-row">
-            <label className="fld">
-              <span>가격(선택)</span>
-              <input
-                placeholder="예: 39,900원"
-                value={product.price}
-                onChange={(e) => patch({ price: e.target.value })}
-              />
-            </label>
-            <label className="fld">
-              <span>링크 종류</span>
-              <select value={product.linkType} onChange={(e) => patch({ linkType: e.target.value })}>
-                <option value="direct">일반(direct)</option>
-                <option value="affiliate">제휴(affiliate)</option>
-              </select>
-            </label>
-          </div>
-
-          <div className="fld-row">
-            <label className="fld">
-              <span>회원명 (내부용)</span>
-              <input value={product.memberName} onChange={(e) => patch({ memberName: e.target.value })} />
-            </label>
-            <label className="fld">
-              <span>수수료 (내부용)</span>
-              <div className="inline">
-                <select
-                  value={product.commission?.type || 'percent'}
-                  onChange={(e) => patch({ commission: { ...product.commission, type: e.target.value } })}
-                >
-                  <option value="percent">%</option>
-                  <option value="amount">원</option>
-                </select>
-                <input
-                  type="number"
-                  value={product.commission?.value ?? 0}
-                  onChange={(e) =>
-                    patch({ commission: { ...product.commission, value: Number(e.target.value) } })
-                  }
-                />
-              </div>
-            </label>
-          </div>
+          <label className="fld">
+            <span>링크 종류</span>
+            <select value={product.linkType} onChange={(e) => patch({ linkType: e.target.value })}>
+              <option value="direct">일반(direct)</option>
+              <option value="affiliate">제휴(affiliate)</option>
+            </select>
+          </label>
         </div>
+
+        <div className="fld-row">
+          <label className="fld">
+            <span>쇼핑몰 관계자 (제품별)</span>
+            <select
+              value={product.mallMemberId ?? ''}
+              onChange={(e) => {
+                const id = e.target.value
+                if (!id) return patch({ mallMemberId: null, memberName: '' })
+                const m = malls.find((x) => x.userId === id)
+                patch({ mallMemberId: id, memberName: m?.displayName ?? '' })
+              }}
+            >
+              <option value="">(없음)</option>
+              {malls.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.displayName}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="fld">
+            <span>수수료 (내부용)</span>
+            <div className="inline">
+              <select
+                value={product.commission?.type || 'percent'}
+                onChange={(e) => patch({ commission: { ...product.commission, type: e.target.value } })}
+              >
+                <option value="percent">%</option>
+                <option value="amount">원</option>
+              </select>
+              <Field
+                number
+                value={product.commission?.value ?? 0}
+                onCommit={(v) => patch({ commission: { ...product.commission, value: v } })}
+              />
+            </div>
+          </label>
+        </div>
+        {malls.length === 0 && (
+          <p className="hs-empty">등록된 쇼핑몰 관계자가 없습니다 (mall 역할 계정 필요).</p>
+        )}
+      </div>
     </div>
   )
 }

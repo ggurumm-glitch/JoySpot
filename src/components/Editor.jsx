@@ -1,7 +1,10 @@
 import { useRef, useState } from 'react'
-import { useStore, EMPTY_HOTSPOTS, newProduct } from '../store/useStore.js'
+import { useQuery, useMutation } from 'convex/react'
+import { api } from '../../convex/_generated/api'
+import { useStore, EMPTY_HOTSPOTS, newProduct, newHotspotDoc } from '../store/useStore.js'
 import { ProductCard } from './ProductCard.jsx'
 import { LibraryDrawer } from './LibraryDrawer.jsx'
+import { Field } from './Field.jsx'
 
 const COLORS = [
   'rgba(255,80,80,0.78)',
@@ -14,38 +17,58 @@ const COLORS = [
 export function Editor() {
   const fileRef = useRef(null)
   const [libOpen, setLibOpen] = useState(false)
-  const [activePid, setActivePid] = useState(null)
 
   const videos = useStore((s) => s.videos)
   const selectedVideoUrl = useStore((s) => s.selectedVideoUrl)
-  const hotspotsByVideo = useStore((s) => s.hotspotsByVideo)
   const selectedHotspotId = useStore((s) => s.selectedHotspotId)
   const currentTime = useStore((s) => s.currentTime)
-  const catalog = useStore((s) => s.catalog)
-
-  const addHotspot = useStore((s) => s.addHotspot)
-  const updateHotspot = useStore((s) => s.updateHotspot)
-  const removeHotspot = useStore((s) => s.removeHotspot)
+  const duration = useStore((s) => s.duration)
   const selectHotspot = useStore((s) => s.selectHotspot)
-  const importHotspots = useStore((s) => s.importHotspots)
-  const addProduct = useStore((s) => s.addProduct)
+  const activePid = useStore((s) => s.activePid)
+  const setActivePid = useStore((s) => s.setActivePid)
+  const setMode = useStore((s) => s.setMode)
 
-  const hotspots = hotspotsByVideo[selectedVideoUrl] || EMPTY_HOTSPOTS
-  const sel = hotspots.find((h) => h.id === selectedHotspotId) || null
+  const hotspots =
+    useQuery(api.hotspots.listByVideo, selectedVideoUrl ? { videoKey: selectedVideoUrl } : 'skip') ??
+    EMPTY_HOTSPOTS
+
+  const stats = useQuery(
+    api.clicks.statsByVideo,
+    selectedVideoUrl ? { videoKey: selectedVideoUrl } : 'skip',
+  )
+  const byPid = stats?.byPid || {}
+
+  const createHotspot = useMutation(api.hotspots.create)
+  const updateHotspot = useMutation(api.hotspots.update)
+  const removeHotspot = useMutation(api.hotspots.remove)
+  const addProduct = useMutation(api.hotspots.addProduct)
+
+  const sel = hotspots.find((h) => h._id === selectedHotspotId) || null
   const videoName = videos.find((v) => v.url === selectedVideoUrl)?.name || ''
-  const patch = (p) => updateHotspot(sel.id, p)
+  const patch = (p) => updateHotspot({ id: sel._id, patch: p })
 
   const products = sel?.products || []
   const activeProduct = products.find((p) => p.pid === activePid) || products[0] || null
 
+  const handleAddHotspot = async () => {
+    if (!selectedVideoUrl) return
+    const id = await createHotspot({
+      videoKey: selectedVideoUrl,
+      hotspot: newHotspotDoc(currentTime, duration),
+    })
+    selectHotspot(id)
+    setActivePid(null)
+    setMode('edit')
+  }
   const handleAddProduct = () => {
     const p = newProduct()
-    addProduct(sel.id, p)
+    addProduct({ id: sel._id, product: p })
     setActivePid(p.pid)
   }
 
   const exportJson = () => {
-    const blob = new Blob([JSON.stringify({ videoName, hotspots }, null, 2)], {
+    const clean = hotspots.map(({ _id, _creationTime, videoKey, ...h }) => h)
+    const blob = new Blob([JSON.stringify({ videoName, hotspots: clean }, null, 2)], {
       type: 'application/json',
     })
     const a = document.createElement('a')
@@ -54,28 +77,25 @@ export function Editor() {
     a.click()
     URL.revokeObjectURL(a.href)
   }
-  const importJson = (e) => {
+  const importJson = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(reader.result)
-        const list = Array.isArray(parsed) ? parsed : parsed.hotspots
-        if (Array.isArray(list)) importHotspots(list)
-        else alert('유효한 핫스팟 JSON이 아닙니다.')
-      } catch {
-        alert('JSON 파싱 실패')
-      }
-    }
-    reader.readAsText(file)
+    const text = await file.text()
     e.target.value = ''
+    try {
+      const parsed = JSON.parse(text)
+      const list = Array.isArray(parsed) ? parsed : parsed.hotspots
+      if (!Array.isArray(list)) return alert('유효한 핫스팟 JSON이 아닙니다.')
+      for (const h of list) await createHotspot({ videoKey: selectedVideoUrl, hotspot: h })
+    } catch {
+      alert('JSON 파싱 실패')
+    }
   }
 
   return (
     <div className="editor">
       <div className="editor-toolbar">
-        <button className="btn primary" onClick={addHotspot}>
+        <button className="btn primary" onClick={handleAddHotspot}>
           + 핫스팟 추가
         </button>
         <button className="btn" onClick={exportJson} disabled={hotspots.length === 0}>
@@ -86,14 +106,13 @@ export function Editor() {
         </button>
         <input ref={fileRef} type="file" accept="application/json" onChange={importJson} style={{ display: 'none' }} />
         <button className="btn lib-btn" onClick={() => setLibOpen(true)}>
-          📚 라이브러리 {catalog.length > 0 ? `(${catalog.length})` : ''}
+          📚 라이브러리
         </button>
       </div>
 
       <LibraryDrawer open={libOpen} onClose={() => setLibOpen(false)} />
 
       <div className="editor-body">
-        {/* 핫스팟 목록 */}
         <div className="hs-list">
           <div className="hs-list-title">핫스팟 ({hotspots.length})</div>
           {hotspots.length === 0 && (
@@ -101,9 +120,9 @@ export function Editor() {
           )}
           {hotspots.map((h) => (
             <div
-              key={h.id}
-              className={'hs-row' + (h.id === selectedHotspotId ? ' active' : '')}
-              onClick={() => selectHotspot(h.id)}
+              key={h._id}
+              className={'hs-row' + (h._id === selectedHotspotId ? ' active' : '')}
+              onClick={() => selectHotspot(h._id)}
             >
               <span className="hs-swatch" style={{ background: h.style?.color }} />
               <span className="hs-row-label">{h.label || '(제목 없음)'}</span>
@@ -114,7 +133,7 @@ export function Editor() {
                 className="hs-del"
                 onClick={(e) => {
                   e.stopPropagation()
-                  removeHotspot(h.id)
+                  removeHotspot({ id: h._id })
                 }}
               >
                 ✕
@@ -123,26 +142,25 @@ export function Editor() {
           ))}
         </div>
 
-        {/* 핫스팟 속성 + 제품들 */}
         {sel ? (
           <div className="hs-form">
             <label className="fld">
               <span>핫스팟 제목(점 위 표시)</span>
-              <input value={sel.label} onChange={(e) => patch({ label: e.target.value })} />
+              <Field value={sel.label} onCommit={(v) => patch({ label: v })} />
             </label>
 
             <div className="fld-row">
               <label className="fld">
                 <span>시작(초)</span>
                 <div className="inline">
-                  <input type="number" step="0.1" value={sel.start} onChange={(e) => patch({ start: Number(e.target.value) })} />
+                  <Field number step="0.1" value={sel.start} onCommit={(v) => patch({ start: v })} />
                   <button className="mini" onClick={() => patch({ start: round1(currentTime) })}>현재</button>
                 </div>
               </label>
               <label className="fld">
                 <span>끝(초)</span>
                 <div className="inline">
-                  <input type="number" step="0.1" value={sel.end} onChange={(e) => patch({ end: Number(e.target.value) })} />
+                  <Field number step="0.1" value={sel.end} onCommit={(v) => patch({ end: v })} />
                   <button className="mini" onClick={() => patch({ end: round1(currentTime) })}>현재</button>
                 </div>
               </label>
@@ -151,11 +169,11 @@ export function Editor() {
             <div className="fld-row">
               <label className="fld">
                 <span>X (%)</span>
-                <input type="number" step="0.1" value={sel.x} onChange={(e) => patch({ x: clampNum(e.target.value) })} />
+                <Field number step="0.1" value={sel.x} onCommit={(v) => patch({ x: clampNum(v) })} />
               </label>
               <label className="fld">
                 <span>Y (%)</span>
-                <input type="number" step="0.1" value={sel.y} onChange={(e) => patch({ y: clampNum(e.target.value) })} />
+                <Field number step="0.1" value={sel.y} onCommit={(v) => patch({ y: clampNum(v) })} />
               </label>
             </div>
 
@@ -190,13 +208,11 @@ export function Editor() {
               </div>
             </div>
 
-            {/* 제품들 (다중 링크) */}
             <div className="products-head">
-              <span>제품 ({products.length})</span>
+              <span>제품 ({products.length}) · 총 클릭 {stats?.total ?? 0}</span>
               <button className="btn" onClick={() => setLibOpen(true)}>📚 불러오기</button>
             </div>
 
-            {/* 제품 탭 */}
             <div className="ptabs">
               {products.map((p, i) => (
                 <button
@@ -214,12 +230,19 @@ export function Editor() {
             </div>
 
             {activeProduct ? (
-              <ProductCard key={activeProduct.pid} hotspotId={sel.id} product={activeProduct} />
+              <ProductCard
+                key={activeProduct.pid}
+                hotspotId={sel._id}
+                product={activeProduct}
+                clicks={byPid[activeProduct.pid] || 0}
+              />
             ) : (
               <p className="hs-empty">제품이 없습니다. 「+ 제품」으로 추가하세요.</p>
             )}
 
-            <button className="btn danger" onClick={() => removeHotspot(sel.id)}>이 핫스팟 삭제</button>
+            <button className="btn danger" onClick={() => removeHotspot({ id: sel._id })}>
+              이 핫스팟 삭제
+            </button>
           </div>
         ) : (
           <div className="hs-form empty">

@@ -43,6 +43,12 @@ body {
 
 .sub { color: var(--muted); margin: 0 0 16px; font-size: 0.92rem; }
 
+.conv-badge {
+  font-size: 0.68rem; font-weight: 600; padding: 3px 8px; border-radius: 999px;
+  background: #2a2f3a; color: var(--muted); border: 1px solid #3a4150;
+}
+.conv-badge.on { background: #12351f; color: var(--accent); border-color: var(--accent); }
+
 .folder-path-inline {
   background: #0b0d12;
   border: 1px solid #2a2f3a;
@@ -276,6 +282,45 @@ body {
 
 .tip { color: var(--muted); font-size: 0.86rem; margin-top: 12px; }
 
+/* ---- 로그인/프로필 화면 ---- */
+.auth-screen {
+  min-height: 80vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+}
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--panel);
+  border: 1px solid #262c37;
+  border-radius: 14px;
+  padding: 24px;
+}
+.auth-card h1 { margin: 0 0 4px; font-size: 1.5rem; }
+.auth-sub { color: var(--muted); margin: 0 0 16px; }
+.auth-card form { display: flex; flex-direction: column; gap: 10px; }
+.auth-card input,
+.auth-card select {
+  background: #0f1218;
+  border: 1px solid #2a2f3a;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 0.95rem;
+  width: 100%;
+}
+.auth-error { color: #ff9a9a; font-size: 0.84rem; }
+.auth-switch {
+  margin-top: 12px;
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.86rem;
+}
+.auth-note { color: var(--muted); font-size: 0.78rem; margin-top: 10px; }
+
 /* ---- 헤더 / 모드 토글 ---- */
 .head-row {
   display: flex;
@@ -284,6 +329,36 @@ body {
   gap: 12px;
   flex-wrap: wrap;
 }
+.head-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid #262c37;
+  border-radius: 999px;
+  padding: 4px 6px 4px 12px;
+  font-size: 0.82rem;
+}
+.user-name { color: var(--text); font-weight: 600; }
+.user-role {
+  background: #12351f;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 0.72rem;
+}
+.logout {
+  background: #1f242e;
+  color: var(--muted);
+  border: 1px solid #2a2f3a;
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+.logout:hover { color: var(--text); }
 .mode-toggle {
   display: inline-flex;
   background: var(--panel);
@@ -307,9 +382,19 @@ body {
 }
 .mode-hint { color: var(--accent); }
 
+.owner-line { color: var(--muted); font-size: 0.84rem; margin: 6px 0 0; display: flex; align-items: center; gap: 8px; }
+.owner-line b { color: var(--text); }
+.ro-badge {
+  background: #3a2a1f; color: #ffcf9a; border: 1px solid #5a4633;
+  border-radius: 999px; padding: 1px 8px; font-size: 0.72rem;
+}
+.mode-toggle button:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* ---- 편집용 핫스팟 상태 ---- */
 .hotspot.editable { touch-action: none; cursor: grab; }
 .hotspot.editable.dragging { cursor: grabbing; }
+/* 드래그 중엔 애니메이션/트랜지션 제거 → 위치 추적이 또렷하게 */
+.hotspot.editable.dragging .hotspot-dot { animation: none; transition: none; }
 .hotspot.editable.selected .hotspot-dot {
   outline: 2px solid #fff;
   outline-offset: 3px;
@@ -553,7 +638,11 @@ body {
 
 .pcard { border: 1px solid #2a2f3a; border-radius: 10px; background: #12151b; }
 .pcard-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; }
-.pcard-title { font-weight: 600; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pcard-title { font-weight: 600; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.pcard-clicks {
+  flex: none; font-size: 0.72rem; color: var(--accent);
+  background: #12351f; border: 1px solid var(--accent); border-radius: 999px; padding: 1px 8px;
+}
 .pcard-head-actions { display: flex; gap: 6px; flex: none; }
 .pcard-body { padding: 0 10px 10px; display: flex; flex-direction: column; gap: 10px; }
 .mini.danger { color: #ff9a9a; border-color: #5a2a30; }
