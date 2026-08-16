@@ -1,0 +1,10 @@
+node_modules
+dist
+.DS_Store
+*.local
+.env
+.env.*
+
+# 테스트 영상(대용량·개인 파일)은 소스 백업에서 제외. README는 유지
+public/videos/*
+!public/videos/README.txt
