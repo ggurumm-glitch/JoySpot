@@ -243,6 +243,63 @@ React (Vite) — SPA, 시청/편집 모드 토글
 
 ---
 
+## 8. 로그인 제공자 (Auth 방식) — 옵션 & 구현 레시피
+
+`@auth/core` 106개 provider 내장. 물었던 4종(네이버·카카오·인스타·페이스북) 모두 지원(구글과 동일 패턴).
+
+### 8-1. 사용 가능한 로그인 방식
+| 분류 | 방식 | 상태 | 비고 |
+|------|------|------|------|
+| 비번 | 이메일+비밀번호 | ✅ 완료 | Password provider |
+| 소셜(글로벌) | **구글** · **Meta(페이스북)** | ✅ 완료 | 구글은 prompt=select_account |
+| 소셜(국내) | **카카오** · **네이버** · **라인** | ✅ 완료 | 라인은 일본/글로벌 대비(한국 사용률 낮음) |
+| 소셜 | **애플** | ⏸ 보류(운영 단계) | ①유료 계정 ②secret=JWT(6개월 갱신) ③**콜백이 convex.site라 도메인 검증 불가** → **커스텀 도메인(운영)** 필요 |
+| 소셜(추가 가능) | GitHub · Discord · X · Microsoft · Twitch … | ⬜ 가능 | 키만 있으면 동일 패턴 |
+| 소셜 | **인스타그램** | ⚠️ 비권장 | Meta가 Instagram Basic Display 종료 → **페이스북 로그인으로 대체** |
+| 이메일 | 매직링크/OTP 코드 | ⬜ 가능 | 이메일 발송(Resend 등) 필요 |
+| 무비번 | 패스키(생체/기기, WebAuthn) | ⬜ 가능 | provider: `passkey` |
+| 기타 | SMS OTP(Twilio) · 익명 | ⬜ 가능 | |
+
+### 8-2. 소셜 추가 공통 레시피 (구글과 동일)
+1. 각 서비스 **개발자 콘솔**에서 앱 등록
+2. **Redirect URI** 등록: `https://cool-otter-463.convex.site/api/auth/callback/<provider>`
+3. Client ID/Secret 발급 → `npx convex env set AUTH_<PROVIDER>_ID / AUTH_<PROVIDER>_SECRET`
+4. `convex/auth.ts` providers에 provider 추가 + AuthScreen 버튼 + 배포
+
+### 8-3. 국내 소셜 개발자 콘솔
+- **카카오**: developers.kakao.com → 앱 생성 → **REST API 키**(=ID) + **Client Secret**(보안 탭에서 발급·활성) + Redirect URI 등록 + **카카오 로그인 활성화**·동의항목(이메일) 설정
+- **네이버**: developers.naver.com → 애플리케이션 등록 → **Client ID/Secret** + **Callback URL** 등록 + 제공정보(이메일) 설정
+- **페이스북**: developers.facebook.com → 앱 → **Facebook 로그인** 추가 → 유효한 OAuth 리디렉션 URI 등록 (앱 검수 전엔 테스터만)
+
+---
+
+## 9. 정보보안 검토 & 조치 계획 (v5) 🔐
+
+> 현재는 **개발/검증 단계**. 아래 이슈는 **운영 배포 전 반드시 조치**. (사장님 결정: 지금은 기록만, 나중에 수정)
+
+### ✅ 안전 확인됨
+- `.env.local`·영상 gitignore → **비밀 커밋 없음**(git 추적 파일에 키 없음 검증)
+- OAuth 시크릿 6종·`JWT_PRIVATE_KEY`·`JWKS`는 **Convex 서버 env에만** → 클라이언트 번들 아님
+- 비밀번호 **해시 저장**(Convex Auth) · 영상 스트리밍 **경로이탈 방지**(폴더 화이트리스트) · 핫스팟 편집 **소유권 서버검사**
+- Serper 키 **서버측 호출**(프론트의 "SERPER_API_KEY"는 안내 문자열일 뿐)
+
+### ⚠️ 조치 필요 (등급별)
+| 등급 | 이슈 | 위치 | 조치 |
+|------|------|------|------|
+| 🔴 High | **역할 자기승격**: 누구나 operator 선택 가능 | `users.upsertProfile`·`ProfileSetup` | operator 자기지정 금지 → **지정 이메일만 자동 operator** |
+| 🔴 High | **시청자에 내부필드 노출**(수수료·회원명·mallMemberId가 네트워크로 전송) | `hotspots.listByVideo` | **공개 전용 쿼리** 분리(내부필드 제거: label·x·y·start·end·style + 제품 name·url·image·description·price만), 전체필드는 인증 스코프 |
+| 🟠 Med | **catalog 무보호**(인증 없이 add/remove/list) | `convex/catalog.ts` | 인증 요구 + 사용자별 스코프 |
+| 🟠 Med | **/api/enrich SSRF**(임의 URL fetch) | `vite.config.js` | Convex action 이전 시 http/https·사설IP·리다이렉트 검증 |
+| 🟠 Med | **클릭 위조 가능**(무검증·무제한) | `clicks.logClick` | 정산 근거=제휴 리포트(subId 대사), 클릭수는 참고치. 레이트리밋 옵션 |
+| 🟡 Low | **대화에 비밀 노출**(배포키·OAuth 시크릿·Serper키를 채팅에 붙여넣음, git엔 없음) | — | **개발 종료 후 배포키·OAuth 시크릿 로테이션** |
+| 🟡 Low | **v.any() 느슨한 검증** | 여러 mutation | 운영 전 args 검증 타이트하게 |
+
+### 확정 결정
+- **operator 부여 = 지정 이메일 자동** (조이텍 이메일 화이트리스트: `joytec@naver.com`·`ggurumm@gmail.com`·`sky4mania@gmail.com`). 로그인 이메일이 화이트리스트면 operator, 아니면 프로필에서 **uploader/mall만** 선택.
+- 시청자 노출 = **내부필드 완전 제거**(수정 구현 시).
+
+---
+
 ## 참고(최신, 2026-08 재탐색)
 - Zustand v5.0.10 — 1.1KB, re-render 없는 구독 지원
 - Convex 무료: 1M 함수호출/월, 0.5GB DB, 1GB 파일, 검색·auth 포함

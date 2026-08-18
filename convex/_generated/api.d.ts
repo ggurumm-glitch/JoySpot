@@ -11,10 +11,13 @@
 import type * as auth from "../auth.js";
 import type * as catalog from "../catalog.js";
 import type * as clicks from "../clicks.js";
+import type * as conversions from "../conversions.js";
+import type * as enrich from "../enrich.js";
 import type * as health from "../health.js";
 import type * as hotspots from "../hotspots.js";
 import type * as http from "../http.js";
 import type * as members from "../members.js";
+import type * as stats from "../stats.js";
 import type * as users from "../users.js";
 import type * as videos from "../videos.js";
 
@@ -28,10 +31,13 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   catalog: typeof catalog;
   clicks: typeof clicks;
+  conversions: typeof conversions;
+  enrich: typeof enrich;
   health: typeof health;
   hotspots: typeof hotspots;
   http: typeof http;
   members: typeof members;
+  stats: typeof stats;
   users: typeof users;
   videos: typeof videos;
 }>;

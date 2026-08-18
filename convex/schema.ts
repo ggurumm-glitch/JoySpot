@@ -71,4 +71,17 @@ export default defineSchema({
   })
     .index('by_video', ['videoKey'])
     .index('by_click', ['clickId']),
+
+  // 구매 전환 (제휴 리포트를 subId=clickId로 대사해 생성)
+  conversions: defineTable({
+    clickId: v.string(),
+    orderAmount: v.number(),
+    commissionAmount: v.number(),
+    mallMemberId: v.optional(v.union(v.id('users'), v.null())),
+    memberName: v.string(),
+    productName: v.string(),
+    videoKey: v.string(),
+  })
+    .index('by_click', ['clickId'])
+    .index('by_video', ['videoKey']),
 })

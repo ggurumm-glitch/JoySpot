@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, Authenticated, Unauthenticated, AuthLoading } from 'convex/react'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { api } from '../convex/_generated/api'
@@ -8,6 +8,7 @@ import { Editor } from './components/Editor.jsx'
 import { AuthScreen } from './components/AuthScreen.jsx'
 import { ProfileSetup } from './components/ProfileSetup.jsx'
 import { PublicViewer } from './components/PublicViewer.jsx'
+import { Dashboard } from './components/Dashboard.jsx'
 import { useStore, activeHotspotsAt, EMPTY_HOTSPOTS } from './store/useStore.js'
 import { fetchVideoList, VIDEO_FOLDER } from './lib/videoList.js'
 
@@ -60,6 +61,7 @@ function AuthedApp() {
 
 function MainApp({ me }) {
   const { signOut } = useAuthActions()
+  const [showStats, setShowStats] = useState(false)
   const videos = useStore((s) => s.videos)
   const videosLoaded = useStore((s) => s.videosLoaded)
   const setVideos = useStore((s) => s.setVideos)
@@ -105,6 +107,9 @@ function MainApp({ me }) {
             JoySpot <span className="badge">2차 · 플랫폼</span>
           </h1>
           <div className="head-actions">
+            <button className={'btn' + (showStats ? ' primary' : '')} onClick={() => setShowStats((v) => !v)}>
+              📊 실적
+            </button>
             <button className="btn" onClick={shareLink} disabled={!selectedVideoUrl} title="시청 공유 링크 복사">
               🔗 공유
             </button>
@@ -144,7 +149,9 @@ function MainApp({ me }) {
         )}
       </header>
 
-      {!videosLoaded ? (
+      {showStats ? (
+        <Dashboard onClose={() => setShowStats(false)} />
+      ) : !videosLoaded ? (
         <div className="empty-state">
           <div className="empty-icon">⏳</div>
           <p>영상 목록을 불러오는 중…</p>

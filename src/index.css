@@ -320,6 +320,80 @@ body {
   font-size: 0.86rem;
 }
 .auth-note { color: var(--muted); font-size: 0.78rem; margin-top: 10px; }
+.auth-divider { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.78rem; margin: 14px 0; }
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: #2a2f3a; }
+.google-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: #fff; color: #202124; border: 1px solid #dadce0; border-radius: 8px;
+  padding: 10px 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer;
+}
+.google-btn:hover { background: #f7f8f8; }
+.g-logo {
+  display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
+  background: conic-gradient(#ea4335 0 25%, #fbbc05 0 50%, #34a853 0 75%, #4285f4 0);
+  color: #fff; font-weight: 800; font-size: 0.7rem;
+}
+.kakao-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: #fee500; color: #191600; border: none; border-radius: 8px;
+  padding: 10px 12px; font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-top: 8px;
+}
+.kakao-btn:hover { background: #f5dc00; }
+.k-logo {
+  display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 6px;
+  background: #191600; color: #fee500; font-weight: 800; font-size: 0.72rem;
+}
+.naver-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: #03c75a; color: #fff; border: none; border-radius: 8px;
+  padding: 10px 12px; font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-top: 8px;
+}
+.naver-btn:hover { background: #02b350; }
+.n-logo {
+  display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 5px;
+  background: #fff; color: #03c75a; font-weight: 900; font-size: 0.74rem;
+}
+.line-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: #06c755; color: #fff; border: none; border-radius: 8px;
+  padding: 10px 12px; font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-top: 8px;
+}
+.line-btn:hover { background: #05b34c; }
+.l-logo {
+  display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 5px;
+  background: #fff; color: #06c755; font-weight: 900; font-size: 0.74rem;
+}
+.meta-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: #1877f2; color: #fff; border: none; border-radius: 8px;
+  padding: 10px 12px; font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-top: 8px;
+}
+.meta-btn:hover { background: #1466d6; }
+.m-logo {
+  display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 5px;
+  background: #fff; color: #1877f2; font-weight: 900; font-size: 0.86rem;
+}
+.github-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: #24292f; color: #fff; border: 1px solid #3a4048; border-radius: 8px;
+  padding: 10px 12px; font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-top: 8px;
+}
+.github-btn:hover { background: #2f363d; }
+.gh-logo {
+  display: inline-grid; place-items: center; width: 20px; height: 18px; border-radius: 5px;
+  background: #fff; color: #24292f; font-weight: 900; font-size: 0.6rem;
+}
+
+/* 소셜 로그인 아이콘 그리드 (한 줄 3개) */
+.social-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+.social-icon-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 10px 6px; border-radius: 10px; border: 1px solid #2a2f3a;
+  background: #171a21; color: var(--text); cursor: pointer;
+}
+.social-icon-btn:hover { background: #1f242e; border-color: #3a4150; }
+.social-icon-btn .social-logo { width: 30px; height: 30px; border-radius: 8px; }
+.social-name { font-size: 0.74rem; color: var(--muted); }
 
 /* ---- 헤더 / 모드 토글 ---- */
 .head-row {
@@ -389,6 +463,47 @@ body {
   border-radius: 999px; padding: 1px 8px; font-size: 0.72rem;
 }
 .mode-toggle button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ---- 실적 대시보드 ---- */
+.dashboard { background: var(--panel); border-radius: 12px; padding: 16px; }
+.dash-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.dash-head h2 { margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
+.dash-total {
+  font-size: 1.05rem; color: var(--muted); margin-bottom: 14px;
+  display: flex; align-items: baseline; gap: 8px;
+}
+.dash-total b { font-size: 1.9rem; color: var(--accent); }
+.dash-sub { font-size: 0.8rem; }
+.dash-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+@media (max-width: 720px) { .dash-cols { grid-template-columns: 1fr; } }
+.dash-card { background: #0f1218; border: 1px solid #2a2f3a; border-radius: 10px; padding: 12px; }
+.dash-card h3 { margin: 0 0 8px; font-size: 0.9rem; color: var(--muted); }
+.dash-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 6px 4px; border-bottom: 1px solid #1c212b; font-size: 0.88rem;
+}
+.dash-row:last-child { border-bottom: none; }
+.dash-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.dash-mall { color: var(--accent); }
+.dash-row b { color: var(--text); flex: none; }
+.dash-time { color: var(--muted); font-size: 0.78rem; flex: none; }
+.dash-note { color: var(--muted); font-size: 0.82rem; margin-top: 14px; }
+
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+@media (max-width: 720px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+.kpi {
+  background: #0f1218; border: 1px solid #2a2f3a; border-radius: 10px; padding: 12px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.kpi-label { font-size: 0.76rem; color: var(--muted); }
+.kpi b { font-size: 1.4rem; }
+.kpi b.accent { color: var(--accent); }
+.kpi-sub { font-size: 0.72rem; color: var(--muted); }
+.report-box {
+  width: 100%; background: #0b0d12; border: 1px solid #2a2f3a; border-radius: 8px;
+  padding: 10px; color: var(--text); font-size: 0.85rem; font-family: ui-monospace, monospace;
+  resize: vertical; margin-bottom: 8px;
+}
 
 /* ---- 편집용 핫스팟 상태 ---- */
 .hotspot.editable { touch-action: none; cursor: grab; }

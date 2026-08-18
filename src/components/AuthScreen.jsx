@@ -1,7 +1,16 @@
 import { useState } from 'react'
 import { useAuthActions } from '@convex-dev/auth/react'
 
-// 이메일+비밀번호 로그인/회원가입
+const SOCIALS = [
+  { id: 'google', name: '구글', logoCls: 'g-logo', logo: 'G' },
+  { id: 'kakao', name: '카카오', logoCls: 'k-logo', logo: 'K' },
+  { id: 'naver', name: '네이버', logoCls: 'n-logo', logo: 'N' },
+  { id: 'line', name: '라인', logoCls: 'l-logo', logo: 'L' },
+  { id: 'facebook', name: 'Meta', logoCls: 'm-logo', logo: 'f' },
+  { id: 'github', name: 'GitHub', logoCls: 'gh-logo', logo: 'GH' },
+]
+
+// 이메일+비밀번호 로그인/회원가입 + 소셜(아이콘 그리드)
 export function AuthScreen() {
   const { signIn } = useAuthActions()
   const [flow, setFlow] = useState('signIn') // 'signIn' | 'signUp'
@@ -34,6 +43,7 @@ export function AuthScreen() {
           JoySpot <span className="badge">쇼퍼블 영상</span>
         </h1>
         <p className="auth-sub">{flow === 'signIn' ? '로그인' : '회원가입'}</p>
+
         <form onSubmit={submit}>
           <input
             type="email"
@@ -56,6 +66,7 @@ export function AuthScreen() {
             {busy ? '처리 중…' : flow === 'signIn' ? '로그인' : '가입하기'}
           </button>
         </form>
+
         <button
           className="auth-switch"
           onClick={() => {
@@ -65,7 +76,24 @@ export function AuthScreen() {
         >
           {flow === 'signIn' ? '계정이 없으신가요? 회원가입' : '이미 계정이 있으신가요? 로그인'}
         </button>
-        <p className="auth-note">구글 로그인은 곧 추가됩니다.</p>
+
+        <div className="auth-divider">
+          <span>소셜 계정으로 로그인</span>
+        </div>
+        <div className="social-grid">
+          {SOCIALS.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className="social-icon-btn"
+              onClick={() => signIn(s.id)}
+              title={`${s.name}로 로그인`}
+            >
+              <span className={'social-logo ' + s.logoCls}>{s.logo}</span>
+              <span className="social-name">{s.name}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )

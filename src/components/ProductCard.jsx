@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useMutation, useQuery } from 'convex/react'
+import { useMutation, useQuery, useAction } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { Field } from './Field.jsx'
 
@@ -8,6 +8,8 @@ export function ProductCard({ hotspotId, product, clicks = 0 }) {
   const updateProduct = useMutation(api.hotspots.updateProduct)
   const removeProduct = useMutation(api.hotspots.removeProduct)
   const addCatalog = useMutation(api.catalog.add)
+  const enrichLink = useAction(api.enrich.enrichLink)
+  const serperSearch = useAction(api.enrich.serperSearch)
   const malls = useQuery(api.members.listMalls) ?? []
   const [busy, setBusy] = useState(null)
   const [serper, setSerper] = useState(null)
@@ -23,8 +25,7 @@ export function ProductCard({ hotspotId, product, clicks = 0 }) {
     if (!product.url) return alert('먼저 제품 링크 URL을 입력하세요.')
     setBusy('link')
     try {
-      const r = await fetch('/api/enrich?url=' + encodeURIComponent(product.url))
-      const d = await r.json()
+      const d = await enrichLink({ url: product.url })
       if (!d.ok) return alert('가져오기 실패: ' + (d.error || '오류'))
       if (!d.image && !d.description) {
         return alert(
@@ -48,8 +49,7 @@ export function ProductCard({ hotspotId, product, clicks = 0 }) {
     setBusy('serper')
     setSerper(null)
     try {
-      const r = await fetch('/api/serper?q=' + encodeURIComponent(q))
-      const d = await r.json()
+      const d = await serperSearch({ q })
       if (d.configured === false)
         return alert('Serper API 키가 설정되지 않았습니다. .env.local 에 SERPER_API_KEY 를 넣고 서버를 재시작하세요.')
       if (!d.ok) return alert('검색 실패: ' + (d.error || '오류'))
