@@ -9,6 +9,7 @@ import { AuthScreen } from './components/AuthScreen.jsx'
 import { ProfileSetup } from './components/ProfileSetup.jsx'
 import { PublicViewer } from './components/PublicViewer.jsx'
 import { Dashboard } from './components/Dashboard.jsx'
+import { QRModal } from './components/QRModal.jsx'
 import { useStore, activeHotspotsAt, EMPTY_HOTSPOTS } from './store/useStore.js'
 import { fetchVideoList, VIDEO_FOLDER } from './lib/videoList.js'
 
@@ -62,6 +63,7 @@ function AuthedApp() {
 function MainApp({ me }) {
   const { signOut } = useAuthActions()
   const [showStats, setShowStats] = useState(false)
+  const [videoQr, setVideoQr] = useState(false)
   const videos = useStore((s) => s.videos)
   const videosLoaded = useStore((s) => s.videosLoaded)
   const setVideos = useStore((s) => s.setVideos)
@@ -112,6 +114,9 @@ function MainApp({ me }) {
             </button>
             <button className="btn" onClick={shareLink} disabled={!selectedVideoUrl} title="시청 공유 링크 복사">
               🔗 공유
+            </button>
+            <button className="btn" onClick={() => setVideoQr(true)} disabled={!selectedVideoUrl} title="영상 시청 QR">
+              📱 QR
             </button>
             <div className="mode-toggle">
               <button className={mode === 'view' ? 'on' : ''} onClick={() => setMode('view')}>
@@ -180,6 +185,15 @@ function MainApp({ me }) {
             {mode === 'edit' && <Editor />}
           </div>
         </div>
+      )}
+      {videoQr && (
+        <QRModal
+          title="영상 시청 QR"
+          data={`${window.location.origin}${window.location.pathname}?watch=${encodeURIComponent(selectedVideoUrl || '')}`}
+          filename="joyspot-watch-qr"
+          note="스캔하면 이 쇼퍼블 영상이 폰에서 열립니다. (개발 중엔 같은 와이파이에서 앱을 http://192.168.x:5173 로 열어야 폰 스캔이 됩니다)"
+          onClose={() => setVideoQr(false)}
+        />
       )}
     </div>
   )

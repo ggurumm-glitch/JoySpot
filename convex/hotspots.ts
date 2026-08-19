@@ -1,6 +1,24 @@
-import { query, mutation } from './_generated/server'
+import { query, mutation, internalQuery } from './_generated/server'
 import { v } from 'convex/values'
 import { getAuthUserId } from '@convex-dev/auth/server'
+
+// QR 리다이렉트용: 핫스팟+pid로 제품 정보 조회 (서버 내부 전용)
+export const getProductInternal = internalQuery({
+  args: { hotspotId: v.id('hotspots'), pid: v.string() },
+  handler: async (ctx, { hotspotId, pid }) => {
+    const h = await ctx.db.get(hotspotId)
+    if (!h) return null
+    const prod = (h.products || []).find((p) => p.pid === pid)
+    if (!prod) return null
+    return {
+      url: prod.url,
+      name: prod.name,
+      mallMemberId: prod.mallMemberId ?? null,
+      memberName: prod.memberName,
+      videoKey: h.videoKey,
+    }
+  },
+})
 
 async function getRole(ctx, userId) {
   const m = await ctx.db
@@ -10,7 +28,7 @@ async function getRole(ctx, userId) {
   return m?.role ?? null
 }
 
-// 영상 편집 권한 검사. 운영자=전체, 미소유 영상=업로더가 클레임, 소유 영상=소유자만.
+// 편집 권한 검사. 운영자=전체, 미소유 영상=업로더가 클레임, 소유 영상=소유자만.
 async function assertCanEditVideo(ctx, videoKey) {
   const userId = await getAuthUserId(ctx)
   if (!userId) throw new Error('로그인이 필요합니다')
@@ -29,19 +47,73 @@ async function assertCanEditVideo(ctx, videoKey) {
   return userId
 }
 
+// 읽기 전용 편집권한 판단(클레임 같은 쓰기 없음). 쿼리에서 사용.
+async function canEditVideoRO(ctx, userId, videoKey) {
+  if (!userId) return false
+  const role = await getRole(ctx, userId)
+  if (role === 'operator') return true
+  const video = await ctx.db
+    .query('videos')
+    .withIndex('by_key', (q) => q.eq('videoKey', videoKey))
+    .unique()
+  if (!video) return role === 'uploader' // 미소유 영상은 업로더가 편집 가능
+  return video.uploaderId === userId
+}
+
 async function videoKeyOfHotspot(ctx, id) {
   const h = await ctx.db.get(id)
   if (!h) throw new Error('핫스팟을 찾을 수 없습니다')
   return { hotspot: h, videoKey: h.videoKey }
 }
 
+// 시청자에게 노출해도 되는 공개 필드만 남긴다(수수료·회원명·몰 참조 등 내부필드 제거).
+function toPublic(h) {
+  return {
+    _id: h._id,
+    videoKey: h.videoKey,
+    label: h.label,
+    x: h.x,
+    y: h.y,
+    start: h.start,
+    end: h.end,
+    pauseOnClick: h.pauseOnClick,
+    style: h.style,
+    products: (h.products || []).map((p) => ({
+      pid: p.pid,
+      name: p.name,
+      url: p.url,
+      image: p.image,
+      description: p.description,
+      price: p.price,
+    })),
+  }
+}
+
+// 편집앱용: 인증 필수. 편집권한자에겐 전체(내부필드 포함), 그 외 인증 사용자에겐 공개필드만.
 export const listByVideo = query({
   args: { videoKey: v.string() },
-  handler: async (ctx, { videoKey }) =>
-    ctx.db
+  handler: async (ctx, { videoKey }) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+    const rows = await ctx.db
       .query('hotspots')
       .withIndex('by_video', (q) => q.eq('videoKey', videoKey))
-      .collect(),
+      .collect()
+    const canEdit = await canEditVideoRO(ctx, userId, videoKey)
+    return canEdit ? rows : rows.map(toPublic)
+  },
+})
+
+// 익명 공개 뷰어용: 인증 없이 호출, 공개 필드만 반환(내부필드 절대 노출 안 함).
+export const listPublic = query({
+  args: { videoKey: v.string() },
+  handler: async (ctx, { videoKey }) => {
+    const rows = await ctx.db
+      .query('hotspots')
+      .withIndex('by_video', (q) => q.eq('videoKey', videoKey))
+      .collect()
+    return rows.map(toPublic)
+  },
 })
 
 export const create = mutation({

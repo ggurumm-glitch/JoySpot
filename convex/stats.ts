@@ -28,9 +28,18 @@ export const dashboard = query({
 
     const byProduct = {}
     const byMall = {}
+    const bySource = { view: 0, qr: 0 }
+    const byDevice = {}
+    const byRegion = {}
+    const byHour = new Array(24).fill(0)
     for (const c of clicks) {
       byProduct[c.productName || '(제목 없음)'] = (byProduct[c.productName || '(제목 없음)'] || 0) + 1
       byMall[c.memberName || '(미지정)'] = (byMall[c.memberName || '(미지정)'] || 0) + 1
+      bySource[c.source === 'qr' ? 'qr' : 'view'] += 1
+      byDevice[c.device || '기타'] = (byDevice[c.device || '기타'] || 0) + 1
+      byRegion[c.region || 'unknown'] = (byRegion[c.region || 'unknown'] || 0) + 1
+      const kst = (c._creationTime || 0) + 9 * 3600 * 1000
+      byHour[Math.floor(kst / 3600000) % 24] += 1
     }
     const sorted = (obj) =>
       Object.entries(obj)
@@ -58,6 +67,10 @@ export const dashboard = query({
       byProduct: sorted(byProduct),
       byMall: sorted(byMall),
       recent,
+      source: bySource,
+      device: sorted(byDevice),
+      region: sorted(byRegion),
+      hour: byHour,
       conv: {
         count: conversions.length,
         totalSales,

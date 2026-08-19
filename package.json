@@ -13,6 +13,7 @@
     "@auth/core": "^0.41.1",
     "@convex-dev/auth": "^0.0.95",
     "convex": "^1.44.0",
+    "qr-code-styling": "^1.9.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zustand": "^5.0.8"

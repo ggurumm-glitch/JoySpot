@@ -1,5 +1,28 @@
 import { action } from './_generated/server'
 import { v } from 'convex/values'
+import { getAuthUserId } from '@convex-dev/auth/server'
+
+// 로그인 사용자만 enrich 사용(익명 호출로 서버 리소스·Serper 유료 크레딧 소진 방지)
+async function requireAuth(ctx) {
+  const userId = await getAuthUserId(ctx)
+  if (!userId) throw new Error('로그인이 필요합니다')
+  return userId
+}
+
+// SSRF 방지: 사설/로컬/링크로컬 IP·내부 호스트로의 fetch 차단
+function isBlockedHost(hostname) {
+  const h = (hostname || '').toLowerCase()
+  if (h === 'localhost' || h === '::1' || h.endsWith('.local') || h.endsWith('.internal')) return true
+  const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])]
+    if (a === 127 || a === 10 || a === 0) return true
+    if (a === 169 && b === 254) return true // 링크로컬(클라우드 메타데이터 169.254.169.254 포함)
+    if (a === 172 && b >= 16 && b <= 31) return true
+    if (a === 192 && b === 168) return true
+  }
+  return false
+}
 
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
@@ -60,7 +83,8 @@ function extractMeta(html, baseUrl) {
 // enrich #1: 링크 OG 메타 (Convex action에서 서버측 fetch)
 export const enrichLink = action({
   args: { url: v.string() },
-  handler: async (_ctx, { url }) => {
+  handler: async (ctx, { url }) => {
+    await requireAuth(ctx)
     let u
     try {
       u = new URL(url)
@@ -69,6 +93,9 @@ export const enrichLink = action({
     }
     if (u.protocol !== 'http:' && u.protocol !== 'https:') {
       return { ok: false, error: 'http/https만 지원' }
+    }
+    if (isBlockedHost(u.hostname)) {
+      return { ok: false, error: '허용되지 않은 주소' }
     }
     try {
       const r = await fetch(url, {
@@ -90,7 +117,8 @@ export const enrichLink = action({
 // enrich #2: Serper 검색 (키는 Convex env SERPER_API_KEY, 서버측)
 export const serperSearch = action({
   args: { q: v.string() },
-  handler: async (_ctx, { q }) => {
+  handler: async (ctx, { q }) => {
+    await requireAuth(ctx)
     const key = process.env.SERPER_API_KEY
     if (!key) return { ok: false, configured: false }
     try {

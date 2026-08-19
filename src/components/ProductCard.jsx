@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { useMutation, useQuery, useAction } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { Field } from './Field.jsx'
+import { QRModal } from './QRModal.jsx'
+
+const SITE_URL = import.meta.env.VITE_CONVEX_SITE_URL
 
 // 핫스팟 안의 개별 제품 편집 카드 (Convex). enrich + 라이브러리 저장.
 export function ProductCard({ hotspotId, product, clicks = 0 }) {
@@ -13,6 +16,8 @@ export function ProductCard({ hotspotId, product, clicks = 0 }) {
   const malls = useQuery(api.members.listMalls) ?? []
   const [busy, setBusy] = useState(null)
   const [serper, setSerper] = useState(null)
+  const [qrOpen, setQrOpen] = useState(false)
+  const qrData = `${SITE_URL}/r?h=${hotspotId}&p=${product.pid}`
 
   const patch = (p) => updateProduct({ id: hotspotId, pid: product.pid, patch: p })
 
@@ -69,11 +74,15 @@ export function ProductCard({ hotspotId, product, clicks = 0 }) {
   }
 
   return (
+    <>
     <div className="pcard">
       <div className="pcard-head">
         <span className="pcard-title">{product.name || '제품 정보'}</span>
         <span className="pcard-clicks" title="이 제품 클릭 수">클릭 {clicks}</span>
         <div className="pcard-head-actions">
+          <button className="mini" onClick={() => setQrOpen(true)} title="제품 직행 QR (추적)">
+            📱 QR
+          </button>
           <button className="mini" onClick={saveToCatalog} title="라이브러리에 저장">
             ⭐ 저장
           </button>
@@ -199,5 +208,15 @@ export function ProductCard({ hotspotId, product, clicks = 0 }) {
         )}
       </div>
     </div>
+    {qrOpen && (
+      <QRModal
+        title={`제품 QR · ${product.name || '제품'}`}
+        data={qrData}
+        filename={`joyspot-product-${(product.name || 'qr').slice(0, 16)}`}
+        note="스캔하면 이 제품으로 바로 이동합니다(스캔=클릭 추적, subId 자동 부착). Convex 도메인이라 폰에서 바로 열립니다."
+        onClose={() => setQrOpen(false)}
+      />
+    )}
+    </>
   )
 }

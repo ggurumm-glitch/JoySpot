@@ -395,6 +395,28 @@ body {
 .social-icon-btn .social-logo { width: 30px; height: 30px; border-radius: 8px; }
 .social-name { font-size: 0.74rem; color: var(--muted); }
 
+/* ---- QR 모달 ---- */
+.qr-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(0, 0, 0, 0.6);
+  display: grid; place-items: center; padding: 20px;
+}
+.qr-modal {
+  width: 100%; max-width: 320px;
+  background: var(--panel); border: 1px solid #262c37; border-radius: 14px;
+  padding: 16px; text-align: center;
+}
+.qr-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-weight: 600; }
+.qr-holder { display: grid; place-items: center; }
+.qr-holder canvas, .qr-holder svg { border-radius: 10px; }
+.qr-note { color: var(--muted); font-size: 0.78rem; margin: 10px 0 6px; line-height: 1.5; }
+.qr-link {
+  font-size: 0.72rem; color: #cfe8ff; background: #0b0d12; border: 1px solid #2a2f3a;
+  border-radius: 6px; padding: 6px 8px; margin-bottom: 10px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left;
+}
+.qr-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
 /* ---- 헤더 / 모드 토글 ---- */
 .head-row {
   display: flex;
@@ -499,6 +521,17 @@ body {
 .kpi b { font-size: 1.4rem; }
 .kpi b.accent { color: var(--accent); }
 .kpi-sub { font-size: 0.72rem; color: var(--muted); }
+
+/* ---- 실적: 유입경로/기기/지역 막대 · 시간대 ---- */
+.dash-cols3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+@media (max-width: 720px) { .dash-cols3 { grid-template-columns: 1fr; } }
+.bar-row { display: grid; grid-template-columns: minmax(0, 1fr) 84px auto; align-items: center; gap: 8px; padding: 5px 0; font-size: 0.85rem; }
+.bar-track { height: 8px; border-radius: 5px; background: #1b2029; overflow: hidden; }
+.bar-fill { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--accent), #7fe3a0); }
+.hours { display: grid; grid-template-columns: repeat(24, 1fr); align-items: end; gap: 3px; height: 116px; }
+.hour-col { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 4px; }
+.hour-bar { width: 100%; min-height: 2px; border-radius: 3px 3px 0 0; background: var(--accent); }
+.hour-lbl { font-size: 0.62rem; color: var(--muted); height: 10px; line-height: 10px; }
 .report-box {
   width: 100%; background: #0b0d12; border: 1px solid #2a2f3a; border-radius: 8px;
   padding: 10px; color: var(--text); font-size: 0.85rem; font-family: ui-monospace, monospace;

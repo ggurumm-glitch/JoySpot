@@ -33,7 +33,7 @@ export function PublicViewer({ videoKey }) {
   }, [selected])
 
   const hotspots =
-    useQuery(api.hotspots.listByVideo, selected ? { videoKey: selected } : 'skip') ?? []
+    useQuery(api.hotspots.listPublic, selected ? { videoKey: selected } : 'skip') ?? []
   const active = hotspots.filter((h) => currentTime >= h.start && currentTime <= h.end)
 
   return (

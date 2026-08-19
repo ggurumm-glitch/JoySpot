@@ -68,6 +68,9 @@ export default defineSchema({
     mallMemberId: v.optional(v.union(v.id('users'), v.null())),
     memberName: v.string(),
     clickId: v.string(), // 제휴 네트워크 리포트와 대사할 고유 추적 id
+    source: v.optional(v.string()), // 'view'(영상클릭) | 'qr'(QR 스캔)
+    device: v.optional(v.string()), // iOS/Android/Windows/Mac/…
+    region: v.optional(v.string()), // 시청=타임존(Asia/Seoul), QR=국가코드(가능시)
   })
     .index('by_video', ['videoKey'])
     .index('by_click', ['clickId']),

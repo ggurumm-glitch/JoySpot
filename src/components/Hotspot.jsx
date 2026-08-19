@@ -13,6 +13,23 @@ function makeClickId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 10)
 }
 
+function deviceOf(ua) {
+  const u = (ua || '').toLowerCase()
+  if (/iphone|ipad|ipod/.test(u)) return 'iOS'
+  if (/android/.test(u)) return 'Android'
+  if (/windows/.test(u)) return 'Windows'
+  if (/macintosh|mac os/.test(u)) return 'Mac'
+  if (/linux/.test(u)) return 'Linux'
+  return '기타'
+}
+function regionOf() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown'
+  } catch {
+    return 'unknown'
+  }
+}
+
 // 시청 모드 핫스팟: 제품 1개면 바로 이동, 여러 개면 썸네일 목록 팝업에서 선택.
 export function Hotspot({ hotspot, videoEl }) {
   const [open, setOpen] = useState(false)
@@ -32,16 +49,15 @@ export function Hotspot({ hotspot, videoEl }) {
     if (!product?.url) return
     if (hotspot.pauseOnClick) videoEl.pause()
     const clickId = makeClickId()
-    // 클릭 기록 (익명 가능) — 실패해도 이동은 진행
+    // 클릭 기록 (익명 가능) — 실패해도 이동은 진행.
+    // 제품/몰/회원명은 서버가 hotspotId+pid로 채운다(클라이언트 위조 방지).
     logClick({
-      videoKey: hotspot.videoKey,
       hotspotId: hotspot._id,
       pid: product.pid,
-      productName: product.name || '',
-      productUrl: product.url,
-      mallMemberId: product.mallMemberId ?? null,
-      memberName: product.memberName || '',
       clickId,
+      source: 'view',
+      device: deviceOf(navigator.userAgent),
+      region: regionOf(),
     })?.catch?.(() => {})
     // 제휴 대사용 subId 부착 후 이동
     const sep = product.url.includes('?') ? '&' : '?'
